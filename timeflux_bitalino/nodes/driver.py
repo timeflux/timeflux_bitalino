@@ -12,7 +12,7 @@ class Bitalino(Node):
 
     This node connects to a BITalino device and streams data at a provided rate.
     It is based on the original BITalino Python library, with some performance
-    enhancements and careful timestamping.
+    improvements and careful timestamping.
 
     Two output streams are provided. The default output is the data read from the
     analog and digital channels. The ``o_offsets`` output provides continuous offsets
@@ -65,19 +65,19 @@ class Bitalino(Node):
             if channel_name in unique_channels:
                 channels.append(channel_num)
 
-        # Compute the sample size in bytes
-        self.channel_count = len(channels)
-        if self.channel_count <= 4:
-            self.sample_size = int(np.ceil((12. + 10. * self.channel_count) / 8.))
-        else:
-            self.sample_size = int(np.ceil((52. + 6. * (self.channel_count - 4)) / 8.))
-
         # Set column names
         # Sequence number and numeric channels are always present
         self.columns = ['SEQ', 'I1', 'I2', 'O1', 'O2']
         # Add required analog channels
         for channel in channels:
             self.columns.append(analog_channels[channel])
+
+        # Compute the sample size in bytes
+        self.channel_count = len(channels)
+        if self.channel_count <= 4:
+            self.sample_size = int(np.ceil((12. + 10. * self.channel_count) / 8.))
+        else:
+            self.sample_size = int(np.ceil((52. + 6. * (self.channel_count - 4)) / 8.))
 
         # Connect to BITalino
         try:
@@ -124,7 +124,7 @@ class Bitalino(Node):
 
     def _read_all(self):
 
-        """"Read all available data"""
+        """Read all available data"""
 
         # Make sure the device is in aquisition mode
         if not self.device.started:
