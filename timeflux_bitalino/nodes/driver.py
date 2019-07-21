@@ -50,7 +50,7 @@ class Bitalino(Node):
     def __init__(self, port, rate=1000, channels=('A1', 'A2', 'A3', 'A4', 'A5', 'A6')):
 
         # Check port
-        if not port.startswith('/dev/tty') and not port.startswith('COM'):
+        if not port.startswith('/dev/') and not port.startswith('COM'):
             raise ValueError(f'Invalid serial port: {port}')
 
         # Check rate
