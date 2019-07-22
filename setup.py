@@ -10,10 +10,10 @@ with open('timeflux_bitalino/__init__.py') as f:
     VERSION = re.search('^__version__\s*=\s*\'(.*)\'', f.read(), re.M).group(1)
 
 setup(
-    name='Timeflux Bitalino plugin',
+    name='timeflux-bitalino',
     packages=find_packages(),
     version=VERSION,
-    description='Timeflux Bitalino plugin',
+    description='Timeflux BITalino plugin',
     long_description=DESCRIPTION,
     author='Pierre Clisson',
     author_email='contact@timeflux.io',
