@@ -138,7 +138,7 @@ class Bitalino(Node):
         buffer_size = self.device.socket.in_waiting
         if buffer_size == 1020:
             # The device buffer can hold up to 1020 bytes
-            self.logger.warn('Internal buffer saturated. Increase graph rate or decrease device rate.')
+            self.logger.warn('OS serial buffer saturated. Increase graph rate or decrease device rate.')
 
         # Compute the maximum number of samples we can get
         sample_count = int(buffer_size / self.sample_size)
@@ -207,7 +207,7 @@ class Bitalino(Node):
                 data[sample_number, 10] = sample[-8] & 0x3F
 
             # Did we miss any sample?
-            # Check for discontinuity in the internal sample counter, encoded to 4 bytes.
+            # Check for discontinuity in the internal sample counter, encoded to 4 bits.
             sample_counter = data[sample_number, 0]
             if sample_counter == self.last_sample_counter + 1:
                 pass
