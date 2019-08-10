@@ -3,4 +3,4 @@ dependencies:
   - pip
   - pip:
     - bitalino
-    - git+https://github.com/timeflux/timeflux_ui
+    - git+https://github.com/timeflux/timeflux_bitalino
