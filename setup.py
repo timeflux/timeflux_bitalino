@@ -9,6 +9,12 @@ with open('README.md', 'rb') as f:
 with open('timeflux_bitalino/__init__.py') as f:
     VERSION = re.search('^__version__\s*=\s*\'(.*)\'', f.read(), re.M).group(1)
 
+DEPENDENCIES = [
+    'pyserial',
+    'bitalino',
+    'timeflux @ git+https://github.com/timeflux/timeflux'
+]
+
 setup(
     name='timeflux-bitalino',
     packages=find_packages(),
@@ -18,4 +24,5 @@ setup(
     author='Pierre Clisson',
     author_email='contact@timeflux.io',
     url='https://timeflux.io',
+    install_requires=DEPENDENCIES
 )
