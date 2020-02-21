@@ -111,11 +111,14 @@ class Bitalino(Node):
         self.time_local = self.time_device
         self.time_delta = np.timedelta64(int(1000 / rate), 'ms')
 
+        # Set meta
+        self.meta = { 'rate': rate }
+
 
     def update(self):
         # Send BITalino data
         data, timestamps = self._read_all()
-        self.o.set(data, timestamps, self.columns)
+        self.o.set(data, timestamps, self.columns, self.meta)
         # Send time offsets
         if len(timestamps) > 0:
             offset = (self.time_local - self.time_device).astype(int)
