@@ -34,7 +34,7 @@ class Bitalino(Node):
             Default: ``('A1', 'A2', 'A3', 'A4', 'A5', 'A6')``.
 
     Example:
-        .. literalinclude:: /../../timeflux_bitalino/test/graphs/bitalino.yaml
+        .. literalinclude:: /../../timeflux_bitalino/examples/bitalino.yaml
            :language: yaml
 
     Notes:
