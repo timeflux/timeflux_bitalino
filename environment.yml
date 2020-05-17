@@ -1,6 +1,0 @@
-dependencies:
-  - pyserial
-  - pip
-  - pip:
-    - bitalino
-    - git+https://github.com/timeflux/timeflux_bitalino

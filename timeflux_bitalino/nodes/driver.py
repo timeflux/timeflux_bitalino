@@ -34,7 +34,7 @@ class Bitalino(Node):
             Default: ``('A1', 'A2', 'A3', 'A4', 'A5', 'A6')``.
 
     Example:
-        .. literalinclude:: /../../timeflux_bitalino/examples/bitalino.yaml
+        .. literalinclude:: /../examples/bitalino.yaml
            :language: yaml
 
     Notes:
@@ -47,19 +47,19 @@ class Bitalino(Node):
 
     """
 
-    def __init__(self, port, rate=1000, channels=('A1', 'A2', 'A3', 'A4', 'A5', 'A6')):
+    def __init__(self, port, rate=1000, channels=("A1", "A2", "A3", "A4", "A5", "A6")):
 
         # Check port
-        if not port.startswith('/dev/') and not port.startswith('COM'):
-            raise ValueError(f'Invalid serial port: {port}')
+        if not port.startswith("/dev/") and not port.startswith("COM"):
+            raise ValueError(f"Invalid serial port: {port}")
 
         # Check rate
         if rate not in (1, 10, 100, 1000):
-            raise ValueError(f'Invalid rate: {rate}')
+            raise ValueError(f"Invalid rate: {rate}")
 
         # Check channels
         unique_channels = set(channels)
-        analog_channels = ['A1', 'A2', 'A3', 'A4', 'A5', 'A6']
+        analog_channels = ["A1", "A2", "A3", "A4", "A5", "A6"]
         channels = []
         for channel_num, channel_name in enumerate(analog_channels):
             if channel_name in unique_channels:
@@ -67,7 +67,7 @@ class Bitalino(Node):
 
         # Set column names
         # Sequence number and numeric channels are always present
-        self.columns = ['SEQ', 'I1', 'I2', 'O1', 'O2']
+        self.columns = ["SEQ", "I1", "I2", "O1", "O2"]
         # Add required analog channels
         for channel in channels:
             self.columns.append(analog_channels[channel])
@@ -75,9 +75,11 @@ class Bitalino(Node):
         # Compute the sample size in bytes
         self.channel_count = len(channels)
         if self.channel_count <= 4:
-            self.sample_size = int(np.ceil((12. + 10. * self.channel_count) / 8.))
+            self.sample_size = int(np.ceil((12.0 + 10.0 * self.channel_count) / 8.0))
         else:
-            self.sample_size = int(np.ceil((52. + 6. * (self.channel_count - 4)) / 8.))
+            self.sample_size = int(
+                np.ceil((52.0 + 6.0 * (self.channel_count - 4)) / 8.0)
+            )
 
         # Connect to BITalino
         try:
@@ -85,7 +87,7 @@ class Bitalino(Node):
         except UnicodeDecodeError:
             # This can happen after an internal buffer overflow.
             # The solution seems to power off the device and repair.
-            raise WorkerInterrupt('Unstable state. Could not connect.')
+            raise WorkerInterrupt("Unstable state. Could not connect.")
         except Exception as e:
             raise WorkerInterrupt(e)
 
@@ -99,21 +101,20 @@ class Bitalino(Node):
         # Read state and show battery level
         # http://forum.bitalino.com/viewtopic.php?t=448
         state = self.device.state()
-        battery = round(1 + (state['battery'] - 511) * ((99 - 1) / (645 - 511)), 2)
-        self.logger.info('Battery: %.2f%%', battery)
+        battery = round(1 + (state["battery"] - 511) * ((99 - 1) / (645 - 511)), 2)
+        self.logger.info("Battery: %.2f%%", battery)
 
         # Start Acquisition
         self.device.start(rate, channels)
 
         # Initialize counters for timestamp indices and continuity checks
         self.last_sample_counter = 15
-        self.time_device = np.datetime64(int(time.time() * 1e6), 'us')
+        self.time_device = np.datetime64(int(time.time() * 1e6), "us")
         self.time_local = self.time_device
-        self.time_delta = np.timedelta64(int(1000 / rate), 'ms')
+        self.time_delta = np.timedelta64(int(1000 / rate), "ms")
 
         # Set meta
-        self.meta = { 'rate': rate }
-
+        self.meta = {"rate": rate}
 
     def update(self):
         # Send BITalino data
@@ -122,8 +123,11 @@ class Bitalino(Node):
         # Send time offsets
         if len(timestamps) > 0:
             offset = (self.time_local - self.time_device).astype(int)
-            self.o_offsets.set([[self.time_device, offset]], [self.time_local], ['time_device', 'time_offset'])
-
+            self.o_offsets.set(
+                [[self.time_device, offset]],
+                [self.time_local],
+                ["time_device", "time_offset"],
+            )
 
     def _read_all(self):
 
@@ -135,13 +139,15 @@ class Bitalino(Node):
 
         # We only support serial connections
         if not self.device.serial:
-            raise Exception('Device must be opened in serial mode.')
+            raise Exception("Device must be opened in serial mode.")
 
         # Check buffer size and limits
         buffer_size = self.device.socket.in_waiting
         if buffer_size == 1020:
             # The device buffer can hold up to 1020 bytes
-            self.logger.warn('OS serial buffer saturated. Increase graph rate or decrease device rate.')
+            self.logger.warn(
+                "OS serial buffer saturated. Increase graph rate or decrease device rate."
+            )
 
         # Compute the maximum number of samples we can get
         sample_count = int(buffer_size / self.sample_size)
@@ -153,7 +159,7 @@ class Bitalino(Node):
         stop = start + self.time_delta * sample_count
         self.time_device = stop
         timestamps = np.arange(start, stop, self.time_delta)
-        self.time_local = np.datetime64(int(time.time() * 1e6), 'us')
+        self.time_local = np.datetime64(int(time.time() * 1e6), "us")
 
         # Infer timestamps from local time and rate
         # /!\ Not monotonic
@@ -174,7 +180,7 @@ class Bitalino(Node):
             # Extract sample
             start = sample_number * self.sample_size
             stop = start + self.sample_size
-            sample = list(struct.unpack(self.sample_size * 'B ', raw[start:stop]))
+            sample = list(struct.unpack(self.sample_size * "B ", raw[start:stop]))
 
             # Is the sample corrupted?
             crc = sample[-1] & 0x0F
@@ -183,11 +189,11 @@ class Bitalino(Node):
             for i in range(self.sample_size):
                 for bit in range(7, -1, -1):
                     x = x << 1
-                    if (x & 0x10):
+                    if x & 0x10:
                         x = x ^ 0x03
                     x = x ^ ((sample[i] >> bit) & 0x01)
-            if (crc != x & 0x0F):
-                self.logger.warn('Checksum failed.')
+            if crc != x & 0x0F:
+                self.logger.warn("Checksum failed.")
                 continue
 
             # Parse sample
@@ -217,11 +223,10 @@ class Bitalino(Node):
             elif sample_counter == 0 and self.last_sample_counter == 15:
                 pass
             else:
-                self.logger.warn('Missed sample.')
+                self.logger.warn("Missed sample.")
             self.last_sample_counter = sample_counter
 
         return data, timestamps
-
 
     def terminate(self):
         self.device.stop()
