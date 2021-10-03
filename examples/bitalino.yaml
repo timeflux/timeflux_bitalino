@@ -7,8 +7,11 @@ graphs:
       class: Bitalino
       params:
         port: /dev/tty.BITalino-02-44-DevB
-        #port: /dev/tty.BITalino-03-87-DevB
         rate: 1000
+        sensors:
+          A1: ECG
+          A2: EEG
+          A3: EDA
     - id: pub_bitalino
       module: timeflux.nodes.zmq
       class: Pub
@@ -33,13 +36,18 @@ graphs:
       class: Sub
       params:
         topics: [ bitalino, offsets ]
+    - id: ui
+      module: timeflux_ui.nodes.ui
+      class: UI
     - id: debug
       module: timeflux.nodes.debug
       class: Display
     edges:
       - source: subscribe:bitalino
+        target: ui:bitalino
+      - source: subscribe:bitalino
         target: debug
-    rate: 1
+    rate: 10
 
   # - id: record
   #   nodes:

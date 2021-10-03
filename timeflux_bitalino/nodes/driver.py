@@ -4,6 +4,11 @@ import numpy as np
 from bitalino import BITalino, ExceptionCode
 from timeflux.core.exceptions import WorkerInterrupt
 from timeflux.core.node import Node
+import timeflux_bitalino.helpers.transfer as transfer
+
+
+# Available transfer functions
+TRANSFER = [f for f in dir(transfer) if not f.startswith("_")]
 
 
 class Bitalino(Node):
@@ -32,6 +37,9 @@ class Bitalino(Node):
             Possible values: ``1``, ``10``, ``100``, ``1000``. Default: ``1000``.
         channels (tupple): The analog channels to read from.
             Default: ``('A1', 'A2', 'A3', 'A4', 'A5', 'A6')``.
+        sensors (dict): The map of attached sensors. If set, transfer functions will be applied.
+            e.g. ``{"A1": "ECG", "A3": "EMG"}``.
+            Default: ``None``.
 
     Example:
         .. literalinclude:: /../examples/bitalino.yaml
@@ -47,7 +55,13 @@ class Bitalino(Node):
 
     """
 
-    def __init__(self, port, rate=1000, channels=("A1", "A2", "A3", "A4", "A5", "A6")):
+    def __init__(
+        self,
+        port,
+        rate=1000,
+        channels=("A1", "A2", "A3", "A4", "A5", "A6"),
+        sensors=None,
+    ):
 
         # Check port
         if not port.startswith("/dev/") and not port.startswith("COM"):
@@ -58,6 +72,8 @@ class Bitalino(Node):
             raise ValueError(f"Invalid rate: {rate}")
 
         # Check channels
+        if sensors:
+            channels += tuple(sensors.keys())
         unique_channels = set(channels)
         analog_channels = ["A1", "A2", "A3", "A4", "A5", "A6"]
         channels = []
@@ -71,6 +87,24 @@ class Bitalino(Node):
         # Add required analog channels
         for channel in channels:
             self.columns.append(analog_channels[channel])
+
+        # Map channels to transfer functions
+        self.functions = {}
+        for channel, sensor in sensors.items():
+            sensor = sensor.upper()
+            if channel in self.columns:
+                if sensor in TRANSFER:
+                    resolution = None
+                    if channel in ("A1", "A2", "A3", "A4"):
+                        resolution = 10
+                    if channel in ("A5", "A6"):
+                        resolution = 6
+                    column = f"{channel}_{sensor}"
+                    self.columns.append(column)
+                    self.functions[self.columns.index(channel)] = {
+                        "function": sensor,
+                        "resolution": resolution,
+                    }
 
         # Compute the sample size in bytes
         self.channel_count = len(channels)
@@ -117,9 +151,14 @@ class Bitalino(Node):
         self.meta = {"rate": rate}
 
     def update(self):
+
         # Send BITalino data
         data, timestamps = self._read_all()
+        if self.functions:
+            converted = self._transfer(data[:, list(self.functions.keys())])
+            data = np.concatenate((data, converted), axis=1)
         self.o.set(data, timestamps, self.columns, self.meta)
+
         # Send time offsets
         if len(timestamps) > 0:
             offset = (self.time_local - self.time_device).astype(int)
@@ -227,6 +266,17 @@ class Bitalino(Node):
             self.last_sample_counter = sample_counter
 
         return data, timestamps
+
+    def _transfer(self, data):
+
+        """Convert signal to meaningful units"""
+
+        for index, converter in enumerate(self.functions.values()):
+            data[:, index] = getattr(transfer, converter["function"])(
+                data[:, index], converter["resolution"]
+            )
+
+        return data
 
     def terminate(self):
         self.device.stop()
